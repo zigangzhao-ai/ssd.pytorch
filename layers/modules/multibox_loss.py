@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from data import coco as cfg
 from ..box_utils import match, log_sum_exp
-
+import focalloss
 
 class MultiBoxLoss(nn.Module):
     """SSD Weighted Loss Function
@@ -109,6 +109,9 @@ class MultiBoxLoss(nn.Module):
         conf_p = conf_data[(pos_idx+neg_idx).gt(0)].view(-1, self.num_classes)
         targets_weighted = conf_t[(pos+neg).gt(0)]
         loss_c = F.cross_entropy(conf_p, targets_weighted, size_average=False)
+        ##调用FocalLoss
+        #compute_c_loss = focalloss.FocalLoss(alpha=None, gamma=2, class_num=num_classes, size_average=False)
+        #loss_c = compute_c_loss(conf_p, targets_weighted)
 
         # Sum of losses: L(x,c,l,g) = (Lconf(x, c) + αLloc(x,l,g)) / N
 
