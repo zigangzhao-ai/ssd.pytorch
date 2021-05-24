@@ -87,7 +87,8 @@ class SSD(nn.Module):
             x = v(x)
             if k % 2 == 1:
                 sources.append(x)
-
+        # for x in sources:
+        #     print(x.shape)
         # apply multibox head to source layers
         # print(self.loc)
         for (x, l, c) in zip(sources, self.loc, self.conf):
@@ -95,7 +96,9 @@ class SSD(nn.Module):
             conf.append(c(x).permute(0, 2, 3, 1).contiguous())
 
         loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
+        # print(loc.shape)
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
+        # print(conf.shape)
         
         if self.phase == "test":
 
@@ -150,39 +153,38 @@ def add_extras(i):
     # Extra layers added to ResNet for feature scaling
     layers = []
     #conv14
-    layers += [conv1_bn(i,256,1)]
-    layers += [conv_bn(256,512,2)]
+    layers += [conv1_bn(i, 256, 1)]
+    layers += [conv_bn(256, 512, 2)]
     #conv15
-    layers += [conv1_bn(512,128,1)]
-    layers += [conv_bn(128,256,2)]
+    layers += [conv1_bn(512, 128, 1)]
+    layers += [conv_bn(128, 256, 2)]
     #conv16
-    layers += [conv1_bn(256,128,1)]
-    layers += [conv_bn_nopd(128,128,2)]
+    layers += [conv1_bn(256, 128, 1)]
+    layers += [conv_bn_nopd(128, 128, 2)]
     return layers
 
 def multibox(resnet50, extra_layers, cfg, num_classes):
     loc_layers = []
     conf_layers = []
 
-    ### may be have bug ###
-    extras_source = [1, 3, 5]
-
     loc_layers += [nn.Conv2d(512, 4 * 4, kernel_size=1)]
     conf_layers += [nn.Conv2d(512, 4 * num_classes, kernel_size=1)]
 
-    loc_layers += [nn.Conv2d(1024, 4 * 4, kernel_size=1)]
-    conf_layers += [nn.Conv2d(1024, 4 * num_classes, kernel_size=1)]
+    loc_layers += [nn.Conv2d(1024, 6 * 4, kernel_size=1)]
+    conf_layers += [nn.Conv2d(1024, 6 * num_classes, kernel_size=1)]
 
     loc_layers += [nn.Conv2d(2048, 6 * 4, kernel_size=1)]
     conf_layers += [nn.Conv2d(2048, 6 * num_classes, kernel_size=1)]
 
-    # for k, v in enumerate(extra_layers[1::2], 2):
+    extras_source = [1, 3, 5]
     for k, v in enumerate(extras_source):
-        k += 2
+       
+        k += 3
         loc_layers += [nn.Conv2d(extra_layers[v][0].out_channels,
                                  cfg[k] * 4, kernel_size=1)]
         conf_layers += [nn.Conv2d(extra_layers[v][0].out_channels,
                                   cfg[k] * num_classes, kernel_size=1)]
+
     return resnet50, extra_layers, (loc_layers, conf_layers)
 
 extras = {
