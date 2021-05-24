@@ -7,7 +7,6 @@ from data import voc, coco
 import os
 import resnet50 as resnet
 
-
 class SSD(nn.Module):
     """Single Shot Multibox Architecture
     The network is composed of a base VGG network followed by the
@@ -32,25 +31,13 @@ class SSD(nn.Module):
         self.num_classes = num_classes
 
         self.cfg = voc     #(coco, voc)[num_classes == 4]
-
         self.priorbox = PriorBox(self.cfg)
-
-        #self.priors = Variable(self.priorbox.forward(), volatile=True)
         with torch.no_grad():
             self.priors = Variable(self.priorbox.forward())
-            #print(self.priors.size())
-
         self.size = size
-
         # SSD network
-        #self.vgg = nn.ModuleList(base)
         self.resnet = base
-
-        # Layer learns to scale the l2 normalized features from conv4_3
-        self.L2Norm = L2Norm(512, 20)
         self.extras = nn.ModuleList(extras)
-        print(self.extras)
-
         self.loc = nn.ModuleList(head[0])
         self.conf = nn.ModuleList(head[1])
 
@@ -80,12 +67,10 @@ class SSD(nn.Module):
         sources = list()
         loc = list()
         conf = list()
-
         # apply resnet50-->ssd
         x = self.resnet.conv1(x)  ## 75*75
         x = self.resnet.bn1(x)
-        x = self.resnet.relu(x)
-         
+        x = self.resnet.relu(x)      
         x = self.resnet.maxpool(x) # 75*75
         # print(x.shape)
         x = self.resnet.layer1(x) #75*75
@@ -164,21 +149,16 @@ def conv1_bn(inp, oup, stride):
 def add_extras(i):
     # Extra layers added to ResNet for feature scaling
     layers = []
-
     #conv14
     layers += [conv1_bn(i,256,1)]
     layers += [conv_bn(256,512,2)]
-
     #conv15
     layers += [conv1_bn(512,128,1)]
     layers += [conv_bn(128,256,2)]
-
     #conv16
     layers += [conv1_bn(256,128,1)]
     layers += [conv_bn_nopd(128,128,2)]
-
     return layers
-
 
 def multibox(resnet50, extra_layers, cfg, num_classes):
     loc_layers = []
@@ -211,10 +191,9 @@ extras = {
 }
 
 mbox = {
-    '300':[4, 6, 6, 6, 6, 4],
+    '300':[4, 6, 6, 6, 4, 4],
     '512': [],
 }
-
 
 def build_ssd(phase, size=300, num_classes=21):
 
